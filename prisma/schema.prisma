@@ -1,0 +1,578 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["views"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  name      String
+  role      Role     @default(STAFF)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// *
+///  * Patient/Person model for medical records
+model Patient {
+  id              String          @id @default(uuid())
+  nik             String          @unique
+  noKk            String
+  noJkn           String          @unique
+  catatanJkn      String
+  noJamkesos      String          @unique
+  catatanJamkesos String
+  nama            String
+  jenisKelamin    JenisKelamin
+  tempatLahir     String?
+  tanggalLahir    DateTime?
+  umur            Int?
+  agama           Agama?
+  statusKawin     StatusKawin?
+  alamatTinggal   String?
+  alamatKtp       String?
+  alamatDomisili  String?
+  provinsi        String?
+  kabupaten       String?
+  kecamatan       String?
+  kelurahanDesa   String?
+  rtRw            String?
+  noTlp           String?         @unique
+  pemilikNoTlp    String?
+  email           String?         @unique
+  layananDifabel  LayananDifabel?
+  pendidikan      String?
+  pekerjaan       String?
+  golDarah        GolDarah?
+  rhesus          Rhesus?
+  namaIbuKandung  String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  medicalRecords  RekamMedis[]
+
+  @@index([nama])
+  @@index([nik])
+  @@index([noKk])
+  @@index([noJkn])
+  @@index([noJamkesos])
+  @@map("Pasien")
+}
+
+/// *
+///  * Medical Record/Visit model
+model RekamMedis {
+  id            String            @id @default(uuid())
+  pasienId      String
+  pendaftaranId String
+  kajianAwalId  String
+  anamnesisId   String
+  pemeriksaanId String
+  diagnosisId   String
+  tindakanId    String
+  pengobatanId  String
+  pulangRujukId String
+  asuhanId      String
+  labId         String
+  catatanDokterId String?
+  status        RekamMedisStatus  @default(DRAFT)
+  completedAt   DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+  anamnesis     Anamnesis         @relation(fields: [anamnesisId], references: [id], onDelete: Cascade)
+  asuhan        Asuhan            @relation(fields: [asuhanId], references: [id], onDelete: Cascade)
+  catatanDokter CatatanDokter?    @relation(fields: [catatanDokterId], references: [id], onDelete: SetNull)
+  diagnosis     Diagnosis         @relation(fields: [diagnosisId], references: [id], onDelete: Cascade)
+  kajianAwal    KajianAwal        @relation(fields: [kajianAwalId], references: [id], onDelete: Cascade)
+  lab           Lab               @relation(fields: [labId], references: [id], onDelete: Cascade)
+  pasien        Patient           @relation(fields: [pasienId], references: [id], onDelete: Cascade)
+  pemeriksaan   Pemeriksaan       @relation(fields: [pemeriksaanId], references: [id], onDelete: Cascade)
+  pendaftaran   Pendaftaran       @relation(fields: [pendaftaranId], references: [id], onDelete: Cascade)
+  pengobatan    Pengobatan        @relation(fields: [pengobatanId], references: [id], onDelete: Cascade)
+  pulangRujuk   PulangRujuk       @relation(fields: [pulangRujukId], references: [id], onDelete: Cascade)
+  tindakan      Tindakan          @relation(fields: [tindakanId], references: [id], onDelete: Cascade)
+  postVisit     PostVisit?
+
+  @@map("RekamMedis")
+}
+
+model Pendaftaran {
+  id           String           @id @default(uuid())
+  tglKunjungan DateTime         @default(now())
+  noAntrian    String
+  unitLayanan  String
+  jenisLayanan String
+  noRegis      String
+  poliklinik   Clinic
+  kehadiran    AttendanceStatus
+  targetStatus TargetStatus     @default(TIDAK)
+  pembayaran   PaymentMethod
+  catatan      String?
+  rekamMedis   RekamMedis[]
+}
+
+model KajianAwal {
+  id                      String       @id @default(uuid())
+  alergi                  String?
+  riwayatPenyakitDahulu   String?
+  riwayatPenyakitKeluarga String?
+  rekamMedis              RekamMedis[]
+}
+
+model Anamnesis {
+  id         String       @id @default(uuid())
+  keluhan    String?
+  rekamMedis RekamMedis[]
+}
+
+model Pemeriksaan {
+  id         String       @id @default(uuid())
+  keadaan    String?
+  kesadaran  Kesadaran?
+  respirasi  Int?
+  suhu       Float?
+  nadi       Int?
+  sistol     Int?
+  diastol    Int?
+  rekamMedis RekamMedis[]
+}
+
+model Diagnosis {
+  id         String       @id @default(uuid())
+  diagnosis  String?
+  kodeIcd    String?
+  rekamMedis RekamMedis[]
+}
+
+model Tindakan {
+  id         String       @id @default(uuid())
+  tindakan   String?
+  rekamMedis RekamMedis[]
+}
+
+model Pengobatan {
+  id         String       @id @default(uuid())
+  pengobatan Json?
+  rekamMedis RekamMedis[]
+}
+
+model PulangRujuk {
+  id                      String                              @id @default(uuid())
+  tglPulang               DateTime?                           @default(now())
+  statusPulang            StatusPulang?
+  kie                     String?
+  plan                    String?
+  rencKunjBerikutnya      DateTime?
+  rencPemeriksaan6Bln     DateTime?
+  rujukInternal           String?
+  rujukEksternal          String?
+  remindedKunjunganD1     PulangRujuk_remindedKunjunganD1     @default(NOT_REMINDED)
+  remindedKunjunganD3     PulangRujuk_remindedKunjunganD3     @default(NOT_REMINDED)
+  remindedKunjunganD7     PulangRujuk_remindedKunjunganD7     @default(NOT_REMINDED)
+  remindedPemeriksaanD1   PulangRujuk_remindedPemeriksaanD1   @default(NOT_REMINDED)
+  remindedPemeriksaanD3   PulangRujuk_remindedPemeriksaanD3   @default(NOT_REMINDED)
+  remindedPemeriksaanD7   PulangRujuk_remindedPemeriksaanD7   @default(NOT_REMINDED)
+  remindedKunjunganLate   PulangRujuk_remindedKunjunganLate   @default(NOT_REMINDED)
+  remindedPemeriksaanLate PulangRujuk_remindedPemeriksaanLate @default(NOT_REMINDED)
+  rekamMedis              RekamMedis[]
+}
+
+model Asuhan {
+  id           String       @id @default(uuid())
+  diagnosaData String?
+  diagnosa     String?
+  intervensi   String?
+  implementasi String?
+  evaluasi     String?
+  rekamMedis   RekamMedis[]
+}
+
+model Lab {
+  id                    String       @id @default(uuid())
+  permintaanPemeriksaan String?
+  rekamMedis            RekamMedis[]
+}
+
+/// *
+///  * Doctor note for a patient visit
+model CatatanDokter {
+  id         String       @id @default(uuid())
+  catatan    String?      @db.Text
+  dokterId   String?
+  namaDokter String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  rekamMedis RekamMedis[]
+}
+
+model SystemConfig {
+  key       String   @id @db.VarChar(255)
+  value     String   @db.Text
+  updatedAt DateTime
+}
+
+model PostVisit {
+  id           String     @id @default(uuid())
+  rekamMedisId String     @unique
+  token        String     @unique
+  expiresAt    DateTime
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  rekamMedis   RekamMedis @relation(fields: [rekamMedisId], references: [id], onDelete: Cascade)
+
+  @@map("PostVisit")
+}
+
+view PatientTargetData {
+  patientId             String                                  @unique
+  nik                   String
+  nama                  String
+  noTlp                 String?
+  rekamMedisId          String                                  @unique
+  rekamMedisDate        DateTime                                @default(now())
+  targetStatus          PatientTargetData_targetStatus          @default(TIDAK)
+  appointmentDate       DateTime?
+  labCheckDate          DateTime?
+  remindedKunjunganD7   PatientTargetData_remindedKunjunganD7   @default(NOT_REMINDED)
+  remindedKunjunganD3   PatientTargetData_remindedKunjunganD3   @default(NOT_REMINDED)
+  remindedKunjunganD1   PatientTargetData_remindedKunjunganD1   @default(NOT_REMINDED)
+  remindedPemeriksaanD7 PatientTargetData_remindedPemeriksaanD7 @default(NOT_REMINDED)
+  remindedPemeriksaanD3 PatientTargetData_remindedPemeriksaanD3 @default(NOT_REMINDED)
+  remindedPemeriksaanD1 PatientTargetData_remindedPemeriksaanD1 @default(NOT_REMINDED)
+}
+
+// ——— Enums ———
+
+enum Role {
+  ADMIN
+  DOCTOR
+  STAFF
+}
+
+enum JenisKelamin {
+  L
+  P
+}
+
+enum Agama {
+  ISLAM
+  KRISTEN
+  KATOLIK
+  HINDU
+  BUDDHA
+  KONGHUCU
+}
+
+enum StatusKawin {
+  BELUM_KAWIN
+  KAWIN
+  CERAI_HIDUP
+  CERAI_MATI
+}
+
+enum LayananDifabel {
+  YA
+  TIDAK
+}
+
+enum GolDarah {
+  A
+  B
+  AB
+  O
+}
+
+enum Rhesus {
+  POSITIF
+  NEGATIF
+}
+
+enum Clinic {
+  LANSIA
+  INFEKSIUS_A
+  INFEKSIUS_B
+  INFEKSIUS_C
+  NON_INFEKSIUS_A
+  NON_INFEKSIUS_B
+  NON_INFEKSIUS_C
+  UGD
+  GIGI
+  KIA
+  UMUM
+}
+
+enum AttendanceStatus {
+  HADIR
+  TIDAK_HADIR
+  PEMBATALAN
+}
+
+enum TargetStatus {
+  TIDAK
+  HT
+  DM
+  HT_DM
+}
+
+enum PaymentMethod {
+  BPJS
+  MANDIRI
+  ASURANSI
+}
+
+enum Kesadaran {
+  KOMPOS_MENTIS
+  APATIS
+  SOMNOLENT
+  SOPOR
+  KOMA
+}
+
+enum RekamMedisStatus {
+  DRAFT
+  SELESAI
+}
+
+enum StatusPulang {
+  SEMBUH
+  MEMBAIK
+  KONTROL
+  RUJUK
+  MENINGGAL
+}
+
+enum PatientTargetData_targetStatus {
+  TIDAK
+  HT
+  DM
+  HT_DM
+}
+
+enum PatientTargetData_remindedKunjunganD7 {
+  NOT_REMINDED
+  REMINDED_SUCCESS
+  REMINDED_FAILED
+  NO_PHONE
+  MISSING_PARAMS
+  BAD_AUTH
+  NETWORK_ERROR
+  INVALID_NUMBER
+  SESSION_ERROR
+  RATE_LIMIT
+  AUTH_ERROR
+  WAHA_ERROR
+  UNKNOWN_ERROR
+}
+
+enum PulangRujuk_remindedKunjunganD1 {
+  NOT_REMINDED
+  REMINDED_SUCCESS
+  REMINDED_FAILED
+  NO_PHONE
+  MISSING_PARAMS
+  BAD_AUTH
+  NETWORK_ERROR
+  INVALID_NUMBER
+  SESSION_ERROR
+  RATE_LIMIT
+  AUTH_ERROR
+  WAHA_ERROR
+  UNKNOWN_ERROR
+}
+
+enum PatientTargetData_remindedKunjunganD3 {
+  NOT_REMINDED
+  REMINDED_SUCCESS
+  REMINDED_FAILED
+  NO_PHONE
+  MISSING_PARAMS
+  BAD_AUTH
+  NETWORK_ERROR
+  INVALID_NUMBER
+  SESSION_ERROR
+  RATE_LIMIT
+  AUTH_ERROR
+  WAHA_ERROR
+  UNKNOWN_ERROR
+}
+
+enum PulangRujuk_remindedKunjunganD3 {
+  NOT_REMINDED
+  REMINDED_SUCCESS
+  REMINDED_FAILED
+  NO_PHONE
+  MISSING_PARAMS
+  BAD_AUTH
+  NETWORK_ERROR
+  INVALID_NUMBER
+  SESSION_ERROR
+  RATE_LIMIT
+  AUTH_ERROR
+  WAHA_ERROR
+  UNKNOWN_ERROR
+}
+
+enum PatientTargetData_remindedKunjunganD1 {
+  NOT_REMINDED
+  REMINDED_SUCCESS
+  REMINDED_FAILED
+  NO_PHONE
+  MISSING_PARAMS
+  BAD_AUTH
+  NETWORK_ERROR
+  INVALID_NUMBER
+  SESSION_ERROR
+  RATE_LIMIT
+  AUTH_ERROR
+  WAHA_ERROR
+  UNKNOWN_ERROR
+}
+
+enum PulangRujuk_remindedKunjunganD7 {
+  NOT_REMINDED
+  REMINDED_SUCCESS
+  REMINDED_FAILED
+  NO_PHONE
+  MISSING_PARAMS
+  BAD_AUTH
+  NETWORK_ERROR
+  INVALID_NUMBER
+  SESSION_ERROR
+  RATE_LIMIT
+  AUTH_ERROR
+  WAHA_ERROR
+  UNKNOWN_ERROR
+}
+
+enum PatientTargetData_remindedPemeriksaanD7 {
+  NOT_REMINDED
+  REMINDED_SUCCESS
+  REMINDED_FAILED
+  NO_PHONE
+  MISSING_PARAMS
+  BAD_AUTH
+  NETWORK_ERROR
+  INVALID_NUMBER
+  SESSION_ERROR
+  RATE_LIMIT
+  AUTH_ERROR
+  WAHA_ERROR
+  UNKNOWN_ERROR
+}
+
+enum PulangRujuk_remindedPemeriksaanD1 {
+  NOT_REMINDED
+  REMINDED_SUCCESS
+  REMINDED_FAILED
+  NO_PHONE
+  MISSING_PARAMS
+  BAD_AUTH
+  NETWORK_ERROR
+  INVALID_NUMBER
+  SESSION_ERROR
+  RATE_LIMIT
+  AUTH_ERROR
+  WAHA_ERROR
+  UNKNOWN_ERROR
+}
+
+enum PatientTargetData_remindedPemeriksaanD3 {
+  NOT_REMINDED
+  REMINDED_SUCCESS
+  REMINDED_FAILED
+  NO_PHONE
+  MISSING_PARAMS
+  BAD_AUTH
+  NETWORK_ERROR
+  INVALID_NUMBER
+  SESSION_ERROR
+  RATE_LIMIT
+  AUTH_ERROR
+  WAHA_ERROR
+  UNKNOWN_ERROR
+}
+
+enum PulangRujuk_remindedPemeriksaanD3 {
+  NOT_REMINDED
+  REMINDED_SUCCESS
+  REMINDED_FAILED
+  NO_PHONE
+  MISSING_PARAMS
+  BAD_AUTH
+  NETWORK_ERROR
+  INVALID_NUMBER
+  SESSION_ERROR
+  RATE_LIMIT
+  AUTH_ERROR
+  WAHA_ERROR
+  UNKNOWN_ERROR
+}
+
+enum PatientTargetData_remindedPemeriksaanD1 {
+  NOT_REMINDED
+  REMINDED_SUCCESS
+  REMINDED_FAILED
+  NO_PHONE
+  MISSING_PARAMS
+  BAD_AUTH
+  NETWORK_ERROR
+  INVALID_NUMBER
+  SESSION_ERROR
+  RATE_LIMIT
+  AUTH_ERROR
+  WAHA_ERROR
+  UNKNOWN_ERROR
+}
+
+enum PulangRujuk_remindedPemeriksaanD7 {
+  NOT_REMINDED
+  REMINDED_SUCCESS
+  REMINDED_FAILED
+  NO_PHONE
+  MISSING_PARAMS
+  BAD_AUTH
+  NETWORK_ERROR
+  INVALID_NUMBER
+  SESSION_ERROR
+  RATE_LIMIT
+  AUTH_ERROR
+  WAHA_ERROR
+  UNKNOWN_ERROR
+}
+
+enum PulangRujuk_remindedKunjunganLate {
+  NOT_REMINDED
+  REMINDED_SUCCESS
+  REMINDED_FAILED
+  NO_PHONE
+  MISSING_PARAMS
+  BAD_AUTH
+  NETWORK_ERROR
+  INVALID_NUMBER
+  SESSION_ERROR
+  RATE_LIMIT
+  AUTH_ERROR
+  WAHA_ERROR
+  UNKNOWN_ERROR
+}
+
+enum PulangRujuk_remindedPemeriksaanLate {
+  NOT_REMINDED
+  REMINDED_SUCCESS
+  REMINDED_FAILED
+  NO_PHONE
+  MISSING_PARAMS
+  BAD_AUTH
+  NETWORK_ERROR
+  INVALID_NUMBER
+  SESSION_ERROR
+  RATE_LIMIT
+  AUTH_ERROR
+  WAHA_ERROR
+  UNKNOWN_ERROR
+}
